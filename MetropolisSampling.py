@@ -1,4 +1,5 @@
 import numpy as np
+import jax.numpy as jnp
 import networkx as nx
 import StochasticReconfiguration as SR
 from copy import deepcopy
@@ -8,25 +9,20 @@ import random
 def HilbertBuild(edges):
 	return edges
 
-def thetaCalc(spins, weights, hidBias, hidSite):
-	theta = np.complex(0.,0.)
-	theta += hidBias[hidSite]
-	for j in range(len(spins)):
-		theta += weights[hidSite][j] * spins[j]
-	return theta
-
 def ratioFunk(weights, visBias, hidBias, spins, spinSite):
 
 	### theta = b_j + sum W_ij * v_j
 	spinUpdate = deepcopy(spins)
-	preFact = np.exp(-2*visBias[spinSite]*spins[spinSite])
-	multFact = preFact
-	for i in range(len(hidBias)):
-		theta = thetaCalc(spinUpdate, weights, hidBias, i)
-		multFact *= np.cosh(theta - 2 * spins[spinSite]*weights[i][spinSite])/np.cosh(theta)
+
+	preFact = jnp.exp(-2*visBias[spinSite]*spins[spinSite])
+	theta = SR.thetaCalc(spinUpdate, weights, hidBias)
+	numer = jnp.prod(jnp.cosh(theta - 2 * weights[:,spinSite]*spins[spinSite]))
+	denom = jnp.prod(jnp.cosh(theta))
+	multFact = preFact*(numer/denom)
+	#print(multFact)
 	r = random.uniform(0,1)
-	#print(abs(multFact)**2)
 	if np.argmin([1., abs(multFact)**2]) >= r:
+		#print("flip")
 		if spinUpdate[spinSite] == 1.:
 			spinUpdate[spinSite] = -1.
 		else:
@@ -71,6 +67,9 @@ def MetropolisHastings(steps, sampling, weights, visBias, hidBias, spins):
 
 	OAvg = O/count
 	EAvg = EAvg/count
+
+	print(EAvg)
+	#print(OAvg)
 	return OFull, OAvg, EAvg, EFull, updatedSpins
 
 def HamiltonianExpectation(A, B, weights, visBias, hidBias, spins):

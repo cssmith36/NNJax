@@ -6,8 +6,13 @@ def recenter(OAvg,OFull,EAvg,EFull,Ns,totParams):
 	for i in range(Ns):
 		xCenter[i] = (1/np.sqrt(Ns-1)*(OFull[i]-OAvg))
 		eCenter[i] = (1/np.sqrt(Ns-1)*(EFull[i]-EAvg))
+	#print("Recentered:")
+	#print(xCenter)
+	#print(EAvg)
+	#print(eCenter)
 	return xCenter, eCenter
 
 def ForceVec(xCenter, eCenter):
 	F = np.matmul(np.conj(xCenter).T,eCenter)
-	return F
+	S = np.matmul(np.conj(xCenter).T,xCenter)
+	return F, S

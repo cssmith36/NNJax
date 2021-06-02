@@ -1,30 +1,30 @@
 import numpy as np
-#import jax.numpy as jnp
+import jax.numpy as jnp
 import cmath
 
+
+def thetaCalc(spins, weights, hidBias):
+	theta = hidBias + jnp.dot(weights,spins)
+	#print(theta)
+	return theta
 
 def LocalEnergy(spins, updatedSpins, weights, visBias, hidBias):
 
 	ELoc = np.array([complex(0.,0.) for i in range(len(spins))])
 
-	for k in range(5):
-		ELoc[k] += spins[k] * updatedSpins[k]
+	ELocJ = jnp.sum(jnp.dot(spins,updatedSpins))
 
-		preFact = np.exp(-2*visBias[k]*spins[k])
-		multFact = 1
-		for i in range(len(hidBias)):
-			### Construct theta
-			theta = 0.
-			for j in range(len(visBias)):
-				theta += weights[i][j] * spins[j]
-			theta += hidBias[i]
-			multFact *= np.cosh(theta - 2 * weights[i][k])/np.cosh(theta)
-		multFact *= preFact
-		multFact2 = (-1)**((1+spins[k])/2)*complex(0,1)*multFact
+	#print(type(ELoc))
 
-		ELoc[k] += multFact
-		ELoc[k] += multFact2
-	ELoc = np.sum(ELoc)
+	theta = thetaCalc(spins,weights,hidBias)
+	preFact = jnp.exp(-2*jnp.multiply(visBias,spins))
+	for i in range(len(spins)):
+		multArray = jnp.cosh(theta - 2 * weights[:,i]*spins[i])/jnp.cosh(theta)
+		#print(multArray)
+		#print(preFact)
+		ELoc[i] += preFact[i]*jnp.prod(multArray)
+		ELoc[i] += 1j*(-1)**((1+spins[i])/2)
+	ELoc = jnp.sum(ELoc) + ELocJ
 	#print(ELoc)
 	return ELoc
 
@@ -33,28 +33,17 @@ def O_Deriv(spins, weights, visBias, hidBias):
 	numHid = len(hidBias)
 	numVis = len(visBias)
 
-	O_a = np.array([complex(0.,0.) for i in range(len(spins))])
-	O_b = np.array([complex(0.,0.) for i in range(len(hidBias))])
-	O_W = np.array([[complex(0.,0.) for i in range(numVis)] for j in range(numHid)])
 	#print(O_W)
-	for i in range(len(spins)):
-		O_a[i] = spins[i]
-	for i in range(len(hidBias)):
-		theta = 0.
-		for j in range(len(visBias)):
-			theta += weights[i][j] * spins[j]
-		theta += hidBias[i]
+	O_a = spins
+	theta = thetaCalc(spins, weights, hidBias)
+	O_b = jnp.tanh(theta)
+	#print(O_b)
+	O_W = jnp.kron(O_b,spins)
+	#print(O_W)
 
-		O_b[i] = np.tanh(theta)
-
-		for j in range(numVis):
-			#print("i,j:",i,j)
-			O_W[i][j] = spins[j] * np.tanh(theta)
-
-
-	O_W = O_W.flatten()
 	StackDev = np.concatenate([O_W,O_a,O_b])
 	StackDev = StackDev.flatten()
+	#print(StackDev)
 
 	return StackDev
 
