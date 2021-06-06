@@ -19,10 +19,9 @@ def ratioFunk(weights, visBias, hidBias, spins, spinSite):
 	numer = jnp.prod(jnp.cosh(theta - 2 * weights[:,spinSite]*spins[spinSite]))
 	denom = jnp.prod(jnp.cosh(theta))
 	multFact = preFact*(numer/denom)
-	#print(multFact)
+
 	r = random.uniform(0,1)
 	if np.argmin([1., abs(multFact)**2]) >= r:
-		#print("flip")
 		if spinUpdate[spinSite] == 1.:
 			spinUpdate[spinSite] = -1.
 		else:
@@ -30,13 +29,13 @@ def ratioFunk(weights, visBias, hidBias, spins, spinSite):
 	return spinUpdate, multFact
 
 def MetropolisHastings(steps, sampling, weights, visBias, hidBias, spins):
-	''' Hilbert: Graph with the given connections'''
+	''' Here we calculate the Metropolis step and sample ELoc, Expected Energy
+	    and O Derivatives from these steps'''
 
 	totParam = len(visBias)*len(hidBias) + len(visBias) + len(hidBias)
 
 	OFull = np.array([[complex(0.,0.) for i in range(totParam)] for j in range(steps-sampling)])
 	O = np.array([complex(0.,0.) for i in range(totParam)])
-	print("O:",len(O))
 	EFull = np.array([complex(0.,0.) for i in range(steps-sampling)])
 	EAvg = complex(0.,0.)
 	count = 0.
